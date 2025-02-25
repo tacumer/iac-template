@@ -3,7 +3,7 @@ Resources:
   ApiGateway:
     Type: AWS::ApiGateway::RestApi
     Properties:
-      Name: AudienceNotificationsAPI
+      Name: vcs-dev-notification-api
       Description: API for managing audiences, notifications, and templates.
 
   RootResource:
@@ -20,20 +20,6 @@ Resources:
       RestApiId: !Ref ApiGateway
       PathPart: audiences
 
-  NotificationsResource:
-    Type: AWS::ApiGateway::Resource
-    Properties:
-      ParentId: !Ref RootResource
-      RestApiId: !Ref ApiGateway
-      PathPart: notifications
-
-  TemplatesResource:
-    Type: AWS::ApiGateway::Resource
-    Properties:
-      ParentId: !Ref RootResource
-      RestApiId: !Ref ApiGateway
-      PathPart: templates
-
   AudiencesAudienceNameResource:
     Type: AWS::ApiGateway::Resource
     Properties:
@@ -41,23 +27,25 @@ Resources:
       RestApiId: !Ref ApiGateway
       PathPart: '{audience-name}'
 
-  NotificationsReceiptIdStatusResource:
-    Type: AWS::ApiGateway::Resource
-    Properties:
-      ParentId: !Ref NotificationsResource
-      RestApiId: !Ref ApiGateway
-      PathPart: '{receiptId}/status'
-
-  AudiencesMethod:
+  AudiencesGetMethod:
     Type: AWS::ApiGateway::Method
     Properties:
       AuthorizationType: NONE
       HttpMethod: GET
       ResourceId: !Ref AudiencesAudienceNameResource
       RestApiId: !Ref ApiGateway
+      RequestParameters:
+        method.request.path.audience-name: true
       Integration:
         IntegrationHttpMethod: GET
         Type: MOCK
+
+  NotificationsResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref RootResource
+      RestApiId: !Ref ApiGateway
+      PathPart: notifications
 
   NotificationsPostMethod:
     Type: AWS::ApiGateway::Method
@@ -70,6 +58,20 @@ Resources:
         IntegrationHttpMethod: POST
         Type: MOCK
 
+  NotificationsReceiptIdResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref NotificationsResource
+      RestApiId: !Ref ApiGateway
+      PathPart: '{receiptId}'
+
+  NotificationsReceiptIdStatusResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref NotificationsReceiptIdResource
+      RestApiId: !Ref ApiGateway
+      PathPart: status
+
   NotificationsReceiptIdStatusGetMethod:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -77,9 +79,18 @@ Resources:
       HttpMethod: GET
       ResourceId: !Ref NotificationsReceiptIdStatusResource
       RestApiId: !Ref ApiGateway
+      RequestParameters:
+        method.request.path.receiptId: true
       Integration:
         IntegrationHttpMethod: GET
         Type: MOCK
+
+  TemplatesResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref RootResource
+      RestApiId: !Ref ApiGateway
+      PathPart: templates
 
   TemplatesGetMethod:
     Type: AWS::ApiGateway::Method
@@ -103,13 +114,22 @@ Resources:
         IntegrationHttpMethod: POST
         Type: MOCK
 
+  TemplatesTemplateNameResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref TemplatesResource
+      RestApiId: !Ref ApiGateway
+      PathPart: '{template-name}'
+
   TemplatesTemplateNameDeleteMethod:
     Type: AWS::ApiGateway::Method
     Properties:
       AuthorizationType: NONE
       HttpMethod: DELETE
-      ResourceId: !Ref TemplatesResource
+      ResourceId: !Ref TemplatesTemplateNameResource
       RestApiId: !Ref ApiGateway
+      RequestParameters:
+        method.request.path.template-name: true
       Integration:
         IntegrationHttpMethod: DELETE
         Type: MOCK
@@ -119,13 +139,33 @@ Resources:
     Properties:
       AuthorizationType: NONE
       HttpMethod: PUT
-      ResourceId: !Ref TemplatesResource
+      ResourceId: !Ref TemplatesTemplateNameResource
       RestApiId: !Ref ApiGateway
+      RequestParameters:
+        method.request.path.template-name: true
       Integration:
         IntegrationHttpMethod: PUT
         Type: MOCK
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref ApiGateway
+    DependsOn:
+      - AudiencesGetMethod
+      - NotificationsPostMethod
+      - NotificationsReceiptIdStatusGetMethod
+      - TemplatesGetMethod
+      - TemplatesPostMethod
+      - TemplatesTemplateNameDeleteMethod
+      - TemplatesTemplateNamePutMethod
+  ApiGatewayStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      StageName: !Sub dev
+      RestApiId: !Ref ApiGateway
+      DeploymentId: !Ref ApiGatewayDeployment
 
 Outputs:
   ApiGatewayUrl:
-    Description: "Base URL of the API Gateway"
-    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/v1"
+    Description: Base URL of the API Gateway
+    Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/v1
