@@ -73,3 +73,30 @@ exports.handler = async (event) => {
               }
           };
       Runtime: nodejs18.x
+
+###############################################################################################
+
+MyApiAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      Name: MyLambdaAuthorizer
+      RestApiId: !Ref MyApiGateway
+      Type: TOKEN
+      IdentitySource: method.request.header.Authorization
+      AuthorizerUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AuthorizerLambdaFunction.Arn}/invocations"
+      AuthorizerResultTtlInSeconds: 300  # Cache the authorizer result for 5 minutes
+##################################################################################################
+# Permissions for Authorizer Lambda
+  AuthorizerApiGatewayLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt AuthorizerLambdaFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${MyApiGateway}/*"
+
+##############################################################################################
+
+ AuthorizationType: CUSTOM
+ AuthorizerId: !Ref MyApiAuthorizer
+
