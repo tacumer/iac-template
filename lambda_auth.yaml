@@ -11,3 +11,21 @@ MyDynamoDBTable:
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
+
+
+Resources:  
+AccessLogBucket: 
+Type: "AWS::S3::Bucket" 
+Properties: 
+AccessControl: LogDeliveryWrite 
+ 
+MainBucket: 
+Type: "AWS::S3::Bucket" 
+Properties: 
+BucketName: !Ref BucketName 
+BucketEncryption: 
+ServerSideEncryptionConfiguration: 
+- ServerSideEncryptionByDefault: 
+SSEAlgorithm: AES256 
+LoggingConfiguration: 
+DestinationBucketName: !Ref AccessLogBucket
