@@ -1,115 +1,13 @@
-# Lambda Function for Authorizer
-  AuthorizerLambdaFunction:
-    Type: AWS::Lambda::Function
+MyDynamoDBTable:
+    Type: AWS::DynamoDB::Table
     Properties:
-      Handler: index.lambda_handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Code:
-        ZipFile: |
-          def lambda_handler(event, context):
-              # Example: Check for a specific token in the Authorization header
-              token = event['authorizationToken']
-              if token == 'allow':
-                  return {
-                      'principalId': 'user',
-                      'policyDocument': {
-                          'Version': '2012-10-17',
-                          'Statement': [
-                              {
-                                  'Action': 'execute-api:Invoke',
-                                  'Effect': 'Allow',
-                                  'Resource': event['methodArn']
-                              }
-                          ]
-                      }
-                  }
-              else:
-                  return {
-                      'principalId': 'user',
-                      'policyDocument': {
-                          'Version': '2012-10-17',
-                          'Statement': [
-                              {
-                                  'Action': 'execute-api:Invoke',
-                                  'Effect': 'Deny',
-                                  'Resource': event['methodArn']
-                              }
-                          ]
-                      }
-                  }
-      Runtime: py
-
-
-exports.handler = async (event) => {
-              const token = event.authorizationToken;
-              if (token === 'allow') {
-                  return {
-                      principalId: 'user',
-                      policyDocument: {
-                          Version: '2012-10-17',
-                          Statement: [
-                              {
-                                  Action: 'execute-api:Invoke',
-                                  Effect: 'Allow',
-                                  Resource: event.methodArn,
-                              },
-                          ],
-                      },
-                  };
-              } else {
-                  return {
-                      principalId: 'user',
-                      policyDocument: {
-                          Version: '2012-10-17',
-                          Statement: [
-                              {
-                                  Action: 'execute-api:Invoke',
-                                  Effect: 'Deny',
-                                  Resource: event.methodArn,
-                              },
-                          ],
-                      },
-                  };
-              }
-          };
-      Runtime: nodejs18.x
-
-###############################################################################################
-
-MyApiAuthorizer:
-    Type: AWS::ApiGateway::Authorizer
-    Properties:
-      Name: MyLambdaAuthorizer
-      RestApiId: !Ref MyApiGateway
-      Type: TOKEN
-      IdentitySource: method.request.header.Authorization
-      AuthorizerUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AuthorizerLambdaFunction.Arn}/invocations"
-      AuthorizerResultTtlInSeconds: 300  # Cache the authorizer result for 5 minutes
-##################################################################################################
-# Permissions for Authorizer Lambda
-  AuthorizerApiGatewayLambdaPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !GetAtt AuthorizerLambdaFunction.Arn
-      Principal: apigateway.amazonaws.com
-      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${MyApiGateway}/*"
-
-##############################################################################################
-
- AuthorizationType: CUSTOM
- AuthorizerId: !Ref MyApiAuthorizer
-
-
-
-AWSTemplateFormatVersion: 2010-09-09
-Description: AWS CloudFormation Template for the DynamoDB
-Parameters:
-  EnvironmentName:
-    Description: Environment name for the application dev/staging/production
-    Type: String
-    AllowedValues:
-      - dev
-      - staging
-      - production
-
+      TableName: NotificationsTable
+      AttributeDefinitions:
+        - AttributeName: NotificationId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: NotificationId
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
