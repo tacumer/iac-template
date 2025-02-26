@@ -100,3 +100,16 @@ MyApiAuthorizer:
  AuthorizationType: CUSTOM
  AuthorizerId: !Ref MyApiAuthorizer
 
+
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: AWS CloudFormation Template for the DynamoDB
+Parameters:
+  EnvironmentName:
+    Description: Environment name for the application dev/staging/production
+    Type: String
+    AllowedValues:
+      - dev
+      - staging
+      - production
+
